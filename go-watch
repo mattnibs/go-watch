@@ -1,0 +1,37 @@
+#!/bin/bash
+function monitor() {
+    fswatch -r --exclude '[^g][^o]$' $1 |
+    while read line; do
+        restart
+    done
+}
+
+function restart {
+    number=$(ps aux | grep $PROCESS_NAME | wc -l)
+    if [ $number -gt 0 ]; then
+        killall -9 $PROCESS_NAME
+    fi
+    echo ">> Reloading..."
+    go run $FILE_PATH $ARGS &
+}
+
+function close {
+    exit 0
+}
+
+trap close INT
+
+FILE_PATH=$1
+FILE_NAME=$(basename $FILE_PATH)
+PROCESS_NAME=${FILE_NAME%%.*}
+
+shift
+ARGS=$@
+
+# Start the main Go program
+go run $FILE_PATH $ARGS &
+
+monitor $PWD
+
+wait
+#echo $FILE_PATH
